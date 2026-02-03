@@ -118,18 +118,19 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
             return (
               <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                 <div className={`flex gap-3 max-w-[80%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                  {!isMe && isGroup && (
-                    <img src={sender.pfp} className="w-7 h-7 rounded-full self-end mb-1 border border-zinc-800 shadow-xl opacity-70" />
+                  {!isMe && (
+                    <img src={sender.pfp} className="w-8 h-8 rounded-full self-end mb-1 border border-zinc-800 shadow-xl" />
                   )}
                   <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                     <div className={`px-4 py-2.5 rounded-2xl text-[13px] font-medium leading-relaxed tracking-tight ${
                       isMe 
-                      ? 'bg-white text-black rounded-br-none shadow-lg' 
+                      ? 'bg-white text-black rounded-br-none shadow-lg shadow-white/5' 
                       : 'bg-zinc-900 border border-white/5 text-zinc-200 rounded-bl-none shadow-lg'
                     }`}>
                       {msg.originalText || msg.text}
                     </div>
-                    <div className="flex items-center gap-1.5 mt-1.5 px-1 opacity-40">
+                    <div className={`flex items-center gap-1.5 mt-1.5 px-1 opacity-40 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                      {!isMe && isGroup && <span className="text-[7px] font-black uppercase tracking-widest text-zinc-400 mr-1">{sender.username}</span>}
                       <span className="text-[7px] font-black uppercase tracking-widest text-zinc-500">
                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
