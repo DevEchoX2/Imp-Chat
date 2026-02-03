@@ -95,7 +95,7 @@ const Profile: React.FC<ProfileProps> = ({ user, onBack, onMessage, onCall }) =>
               </div>
               <div className="flex items-center gap-3 opacity-50">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                <span className="text-[9px] font-mono text-zinc-400">Mesh route optimized: Node -> Peer</span>
+                <span className="text-[9px] font-mono text-zinc-400">Mesh route optimized: Node {"->"} Peer</span>
               </div>
             </div>
           </div>
