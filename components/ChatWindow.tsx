@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Message, User, Group } from '../types';
-import { ShieldCheck, Video, Phone, Paperclip, ArrowUp, Lock, Ghost, MoreHorizontal, Users } from 'lucide-react';
+import { Message, User, Group, AppState } from '../types';
+import { ShieldCheck, Video, Phone, Paperclip, ArrowUp, Lock, Ghost, MoreHorizontal, Users, ShieldAlert } from 'lucide-react';
 
 interface ChatWindowProps {
   activeId: string | null;
@@ -11,9 +11,22 @@ interface ChatWindowProps {
   friends: User[];
   groups: Group[];
   currentUser: User;
+  settings: AppState['settings'];
   onSendMessage: (text: string) => void;
   onStartCall: (voice: boolean) => void;
 }
+
+const PROFANITY_LIST = ['wild', 'shit', 'fuck', 'ass', 'bitch', 'damn']; // Expand as needed
+
+const filterText = (text: string, enabled: boolean) => {
+  if (!enabled) return text;
+  let filtered = text;
+  PROFANITY_LIST.forEach(word => {
+    const reg = new RegExp(word, 'gi');
+    filtered = filtered.replace(reg, '◆◆◆');
+  });
+  return filtered;
+};
 
 const ChatWindow: React.FC<ChatWindowProps> = ({ 
   activeId, 
@@ -23,6 +36,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   friends,
   groups, 
   currentUser,
+  settings,
   onSendMessage,
   onStartCall
 }) => {
@@ -88,15 +102,17 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {settings.filterEnabled && (
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full mr-2">
+              <ShieldAlert size={10} className="text-emerald-500" />
+              <span className="text-[7px] font-black text-emerald-500 uppercase tracking-widest">FILTER ACTIVE</span>
+            </div>
+          )}
           <button onClick={() => onStartCall(true)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-900 border border-white/5 text-zinc-500 hover:text-white transition-all">
             <Phone size={14} />
           </button>
           <button onClick={() => onStartCall(false)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-900 border border-white/5 text-zinc-500 hover:text-white transition-all">
             <Video size={14} />
-          </button>
-          <div className="w-px h-5 bg-white/5 mx-1"></div>
-          <button className="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-900 border border-white/5 text-zinc-500 hover:text-white transition-all">
-            <MoreHorizontal size={14} />
           </button>
         </div>
       </header>
@@ -114,6 +130,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
           filteredMessages.map((msg, i) => {
             const isMe = msg.senderId === currentUser.id;
             const sender = (friends.find(f => f.id === msg.senderId) || contacts.find(c => c.id === msg.senderId) || currentUser);
+            const content = filterText(msg.originalText || msg.text, settings.filterEnabled);
             
             return (
               <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
@@ -127,14 +144,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                       ? 'bg-white text-black rounded-br-none shadow-lg shadow-white/5' 
                       : 'bg-zinc-900 border border-white/5 text-zinc-200 rounded-bl-none shadow-lg'
                     }`}>
-                      {msg.originalText || msg.text}
+                      {content}
                     </div>
                     <div className={`flex items-center gap-1.5 mt-1.5 px-1 opacity-40 ${isMe ? 'justify-end' : 'justify-start'}`}>
                       {!isMe && isGroup && <span className="text-[7px] font-black uppercase tracking-widest text-zinc-400 mr-1">{sender.username}</span>}
                       <span className="text-[7px] font-black uppercase tracking-widest text-zinc-500">
                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
-                      {isMe && <ShieldCheck size={8} className="text-emerald-500" />}
                     </div>
                   </div>
                 </div>
@@ -153,17 +169,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
             placeholder="Transmit secure bytes..."
             className="flex-1 bg-transparent text-xs font-semibold py-2.5 focus:outline-none placeholder:text-zinc-700 text-white"
           />
-          <div className="flex items-center gap-1">
-            <button type="button" className="w-9 h-9 rounded-full text-zinc-600 hover:text-white transition-colors">
-              <Paperclip size={16} />
-            </button>
-            <button 
-              type="submit"
-              className="w-10 h-10 rounded-xl bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl"
-            >
-              <ArrowUp size={18} />
-            </button>
-          </div>
+          <button 
+            type="submit"
+            className="w-10 h-10 rounded-xl bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl"
+          >
+            <ArrowUp size={18} />
+          </button>
         </form>
       </footer>
     </div>
