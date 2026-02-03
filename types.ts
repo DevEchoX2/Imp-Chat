@@ -12,6 +12,7 @@ export interface User {
   username: string;
   email: string; 
   pfp: string;
+  bio?: string;
   status: 'online' | 'offline' | 'away';
   isTyping?: boolean;
   publicKey?: string;
@@ -38,6 +39,13 @@ export interface Group {
   lastMessage?: string;
 }
 
+export interface Toast {
+  id: string;
+  title: string;
+  message: string;
+  pfp?: string;
+}
+
 export interface AppState {
   currentUser: User | null;
   currentView: AppView;
@@ -52,9 +60,11 @@ export interface AppState {
   activeCallParticipants: User[]; 
   isVoiceOnly: boolean; 
   connected: boolean;
+  toasts: Toast[];
   settings: {
     oggEnabled: boolean;
     particlesEnabled: boolean;
+    filterEnabled: boolean;
     encryptionLevel: 'Standard' | 'Military' | 'Quantum';
   };
 }
