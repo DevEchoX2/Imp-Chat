@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { User } from '../types';
-import { ArrowLeft, MessageSquare, Video, Shield, MapPin, Globe, Calendar } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Video, Shield, Globe, Calendar, Info } from 'lucide-react';
 
 interface ProfileProps {
   user: User & { peerId?: string };
@@ -37,6 +37,17 @@ const Profile: React.FC<ProfileProps> = ({ user, onBack, onMessage, onCall }) =>
 
         <h1 className="mt-8 text-4xl font-black tracking-tighter text-white uppercase">{user.username}</h1>
         <p className="text-zinc-500 font-mono text-xs mt-2 tracking-widest uppercase">ID: {user.peerId || user.id}</p>
+
+        {/* Bio Section */}
+        <div className="mt-8 max-w-lg text-center">
+          <div className="flex items-center justify-center gap-2 mb-3">
+             <Info size={12} className="text-zinc-700" />
+             <span className="text-[9px] font-black text-zinc-700 uppercase tracking-widest">Node Bio</span>
+          </div>
+          <p className="text-zinc-300 text-sm leading-relaxed font-medium bg-zinc-900/30 p-6 rounded-3xl border border-white/5">
+            {user.bio || "No node description provided by this peer."}
+          </p>
+        </div>
 
         <div className="flex items-center gap-4 mt-10">
           <button 
