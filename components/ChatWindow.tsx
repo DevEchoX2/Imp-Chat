@@ -16,7 +16,7 @@ interface ChatWindowProps {
   onStartCall: (voice: boolean) => void;
 }
 
-const PROFANITY_LIST = ['wild', 'shit', 'fuck', 'ass', 'bitch', 'damn']; // Expand as needed
+const PROFANITY_LIST = ['nigga', 'shit', 'fuck', 'ass', 'bitch', 'damn']; 
 
 const filterText = (text: string, enabled: boolean) => {
   if (!enabled) return text;
