@@ -1,4 +1,3 @@
-
 export enum AppView {
   LOGIN = 'LOGIN',
   CHAT = 'CHAT',
