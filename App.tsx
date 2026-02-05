@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { AppView, AppState, Message, User, Group, Toast } from './types';
 import { ParticleBackground } from './components/ParticleBackground';
@@ -14,15 +13,17 @@ import Settings from './components/Settings';
 import Auth from './components/Auth';
 import Profile from './components/Profile';
 
+const PUBLIC_ROOM_ID = 'GLOBAL_MESH';
+
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>({
     currentUser: null,
     currentView: AppView.LOGIN,
-    activeChatId: null,
+    activeChatId: PUBLIC_ROOM_ID,
     viewingProfileId: null,
-    isGroupChat: false,
+    isGroupChat: true,
     messages: [],
-    groups: [],
+    groups: [{ id: PUBLIC_ROOM_ID, name: 'PUBLIC MESH', members: [] }],
     contacts: [],
     friends: [],
     pendingFriendRequests: [],
@@ -69,14 +70,17 @@ const App: React.FC = () => {
         
         const peerId = await socket.connect(user);
         setMyPeerId(peerId);
+        socket.joinRoom(PUBLIC_ROOM_ID);
         
         setState(prev => ({ 
           ...prev, 
           currentUser: user, 
           currentView: AppView.CHAT,
-          groups: storedGroups,
+          groups: [...prev.groups, ...storedGroups.filter(g => g.id !== PUBLIC_ROOM_ID)],
           messages: storedMessages,
-          connected: true
+          connected: true,
+          activeChatId: PUBLIC_ROOM_ID,
+          isGroupChat: true
         }));
       }
     };
@@ -101,13 +105,12 @@ const App: React.FC = () => {
       setState(prev => {
         if (prev.messages.some(m => m.id === msg.id)) return prev;
         
-        // Notification Logic
         const sender = prev.contacts.find(c => c.id === msg.senderId);
         const isActiveChat = prev.activeChatId === (msg.groupId || msg.senderId);
         
         if (!isActiveChat && sender) {
           addToast(
-            msg.groupId ? 'Group Transmission' : 'Direct Signal',
+            msg.groupId === PUBLIC_ROOM_ID ? 'Public Transmission' : (msg.groupId ? 'Cluster Signal' : 'Direct Signal'),
             msg.originalText || msg.text,
             sender.pfp
           );
@@ -118,38 +121,21 @@ const App: React.FC = () => {
       MessagesDB.insertOne(msg);
     });
 
-    socket.on('presence_announcement', (remoteUser: User & { peerId: string }) => {
+    socket.on('node_discovery', (remoteUser: User & { peerId: string }) => {
       setState(prev => {
         const exists = prev.contacts.some(c => c.id === remoteUser.id);
-        if (exists) return prev;
-        return { ...prev, contacts: [...prev.contacts, remoteUser] };
-      });
-      if (state.currentUser) {
-        socket.emit('presence_response', { ...state.currentUser, peerId: myPeerId }, remoteUser.peerId);
-      }
-    });
-
-    socket.on('presence_response', (remoteUser: User & { peerId: string }) => {
-      setState(prev => {
-        const exists = prev.contacts.some(c => c.id === remoteUser.id);
-        if (exists) return prev;
+        if (exists) {
+          return {
+            ...prev,
+            contacts: prev.contacts.map(c => c.id === remoteUser.id ? remoteUser : c)
+          };
+        }
         return { ...prev, contacts: [...prev.contacts, remoteUser] };
       });
     });
 
-    socket.on('user_connected', ({ peerId }) => {
-      if (state.currentUser) {
-        socket.emit('presence_announcement', { ...state.currentUser, peerId: myPeerId }, peerId);
-      }
-    });
-
-    socket.on('group_sync', (group: Group) => {
-      setState(prev => {
-        const exists = prev.groups.some(g => g.id === group.id);
-        if (exists) return prev;
-        GroupsDB.insertOne(group);
-        return { ...prev, groups: [...prev.groups, group] };
-      });
+    socket.on('user_joined_mesh', (userData: User) => {
+      addToast('Node Online', `${userData.username} has joined the mesh.`);
     });
 
   }, [state.currentUser, myPeerId, state.groups]);
@@ -174,9 +160,18 @@ const App: React.FC = () => {
 
     const peerId = await socket.connect(newUser);
     setMyPeerId(peerId);
+    socket.joinRoom(PUBLIC_ROOM_ID);
+
     localStorage.setItem('imp_user', JSON.stringify(newUser));
     
-    setState(prev => ({ ...prev, currentUser: newUser, currentView: AppView.CHAT, connected: true }));
+    setState(prev => ({ 
+      ...prev, 
+      currentUser: newUser, 
+      currentView: AppView.CHAT, 
+      connected: true,
+      activeChatId: PUBLIC_ROOM_ID,
+      isGroupChat: true
+    }));
   };
 
   const updateProfile = (bio: string) => {
@@ -184,7 +179,7 @@ const App: React.FC = () => {
     const updated = { ...state.currentUser, bio };
     localStorage.setItem('imp_user', JSON.stringify(updated));
     setState(prev => ({ ...prev, currentUser: updated }));
-    // Broadcast bio update via presence if needed, but for now we keep it local/DM based
+    socket.emit('update_profile', updated);
   };
 
   const viewingUser = state.viewingProfileId === state.currentUser?.id 
@@ -195,7 +190,6 @@ const App: React.FC = () => {
     <div className="flex h-screen bg-black text-white overflow-hidden font-sans">
       {state.settings.particlesEnabled && <ParticleBackground />}
       
-      {/* Toast Container */}
       <div className="fixed top-6 right-6 z-[200] space-y-3 w-80 pointer-events-none">
         {state.toasts.map(toast => (
           <div key={toast.id} className="pointer-events-auto flex items-center gap-4 bg-zinc-900/80 backdrop-blur-2xl border border-white/10 p-4 rounded-2xl shadow-2xl animate-in slide-in-from-right duration-300">
@@ -226,7 +220,13 @@ const App: React.FC = () => {
             activeId={state.activeChatId}
             onSelect={(id, isGroup) => setState(prev => ({ ...prev, activeChatId: id, isGroupChat: isGroup, currentView: AppView.CHAT }))}
             onViewProfile={(id) => setState(prev => ({ ...prev, viewingProfileId: id, currentView: AppView.PROFILE }))}
-            onCreateGroup={(name, memberIds) => {}} 
+            onCreateGroup={(name, memberIds) => {
+              const groupId = `group-${Math.random().toString(36).substr(2, 9)}`;
+              const newGroup = { id: groupId, name, members: [state.currentUser!.id, ...memberIds] };
+              socket.emit('create_group', newGroup);
+              setState(prev => ({ ...prev, groups: [...prev.groups, newGroup] }));
+              GroupsDB.insertOne(newGroup);
+            }} 
             onAddFriend={() => {}}
             onAcceptRequest={() => {}}
             onDeclineRequest={() => {}}
@@ -259,17 +259,14 @@ const App: React.FC = () => {
                     text: text,
                     timestamp: Date.now(),
                     encrypted: !state.isGroupChat,
-                    originalText: text
+                    originalText: text,
+                    groupId: state.isGroupChat ? state.activeChatId! : undefined,
+                    receiverId: !state.isGroupChat ? state.activeChatId! : undefined
                   };
-                  // Logic for sending here... (simplified for brevity, reuse logic from existing App.tsx if needed)
+                  
                   setState(prev => ({ ...prev, messages: [...prev.messages, newMessage] }));
                   MessagesDB.insertOne(newMessage);
-                  
-                  // Emit logic
-                  if (!state.isGroupChat) {
-                    const receiver = state.contacts.find(c => c.id === state.activeChatId) as any;
-                    if (receiver?.peerId) socket.emit('messageReceived', newMessage, receiver.peerId);
-                  }
+                  socket.emit('sendMessage', newMessage);
                 }}
                 onStartCall={(voice) => setState(prev => ({ ...prev, currentView: AppView.VIDEO_CALL, isVoiceOnly: voice }))}
               />
