@@ -1,4 +1,3 @@
-
 export class CryptoService {
   static async generateKeyPair(): Promise<CryptoKeyPair> {
     return window.crypto.subtle.generateKey(
