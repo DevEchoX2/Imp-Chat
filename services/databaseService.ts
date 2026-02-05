@@ -1,4 +1,3 @@
-
 class MiniMongo {
   private storageKey: string;
 
