@@ -1,11 +1,19 @@
 
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const cors = require('cors');
+import express from 'express';
+import http from 'http';
+import { Server } from 'socket.io';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
+
+// Serve static files from the 'dist' directory (Vite's build output)
+app.use(express.static(path.join(__dirname, 'dist')));
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -72,7 +80,12 @@ io.on('connection', (socket) => {
   });
 });
 
+// Handle SPA routing: serve index.html for any unknown routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
 const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
-  console.log(`IMP Backend Live on Port ${PORT}`);
+  console.log(`IMP Backend and Frontend Live on Port ${PORT}`);
 });
