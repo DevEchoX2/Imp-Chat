@@ -12,10 +12,14 @@ class GlobalPeerSocket {
   public myPeerId: string = '';
   public connected: boolean = false;
 
-  // Use the current origin in production, or localhost in development
+  /**
+   * BACKEND_URL configuration:
+   * When running locally, it attempts to connect to a local server.
+   * In production, it points to your successfully deployed Render instance.
+   */
   private BACKEND_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:10000' 
-    : window.location.origin;
+    : 'https://imp-chat-x5ql.onrender.com';
 
   constructor() {}
 
