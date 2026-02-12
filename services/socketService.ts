@@ -1,3 +1,4 @@
+
 import { Peer } from 'peerjs';
 import { io, Socket } from 'socket.io-client';
 import { User, Message } from '../types';
@@ -11,7 +12,10 @@ class GlobalPeerSocket {
   public myPeerId: string = '';
   public connected: boolean = false;
 
-  private BACKEND_URL = 'https://imp-chat.onrender.com'; 
+  // Use the current origin in production, or localhost in development
+  private BACKEND_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:10000' 
+    : window.location.origin;
 
   constructor() {}
 
